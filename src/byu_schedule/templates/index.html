@@ -74,7 +74,11 @@
     {% if game.status == "final" %}
       <span class="badge {{ 'win' if game.result == 'W' else 'loss' }}">{{ game.result }}</span>
     {% elif game.status == "live" %}
-      <span class="badge live">LIVE</span>
+      <span class="badge live">
+        LIVE
+        {%- if game.period %} · Q{{ game.period }}{% endif -%}
+        {%- if game.display_clock %} {{ game.display_clock }}{% endif -%}
+      </span>
     {% else %}
       <span class="badge upcoming">Upcoming</span>
     {% endif %}

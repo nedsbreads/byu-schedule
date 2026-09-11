@@ -19,12 +19,15 @@ Status = Literal["scheduled", "live", "final"]
 
 @dataclass
 class Game:
+    id: str
     week: int | None
     date: str
     opponent: str
     home_away: str
     status: Status
     result: Literal["W", "L"] | None
+    period: int | None = None
+    display_clock: str | None = None
 
 
 def _status_bucket(status_type: dict) -> Status:
@@ -49,7 +52,8 @@ async def fetch_schedule() -> list[Game]:
     games: list[Game] = []
     for event in data.get("events", []):
         competition = event["competitions"][0]
-        bucket = _status_bucket(competition["status"]["type"])
+        status = competition["status"]
+        bucket = _status_bucket(status["type"])
 
         byu = next(
             c for c in competition["competitors"] if c["team"]["abbreviation"] == "BYU"
@@ -64,12 +68,15 @@ async def fetch_schedule() -> list[Game]:
 
         games.append(
             Game(
+                id=event["id"],
                 week=event.get("week", {}).get("number"),
                 date=event["date"],
                 opponent=opponent["team"]["displayName"],
                 home_away=byu["homeAway"],
                 status=bucket,
                 result=result,
+                period=status.get("period") if bucket == "live" else None,
+                display_clock=status.get("displayClock") if bucket == "live" else None,
             )
         )
 

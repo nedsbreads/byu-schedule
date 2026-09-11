@@ -1,0 +1,36 @@
+name: Notify on BYU game final
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.12.13"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Check for finished games and notify
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: uv run python scripts/notify_final.py
+
+      - name: Commit updated notification state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/notified.json
+          git diff --cached --quiet || git commit -m "Update notified games state"
+          git diff --cached --quiet || git push
