@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="60">
+<title>BYU Schedule</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0 auto;
+    max-width: 480px;
+    padding: 20px 16px 40px;
+    background: #ffffff;
+    color: #111111;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0b0b0b; color: #eaeaea; }
+    .game { background: #1a1a1a; border-color: #2a2a2a; }
+    .meta { color: #9a9a9a; }
+    .badge.upcoming { background: #333; color: #ddd; }
+  }
+  h1 {
+    font-size: 1.3rem;
+    margin: 0 0 4px;
+  }
+  .subtitle {
+    font-size: 0.85rem;
+    color: #777;
+    margin: 0 0 20px;
+  }
+  .game {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+  }
+  .info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .opponent {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meta { font-size: 0.85rem; color: #666; }
+  .badge {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 6px 14px;
+    border-radius: 999px;
+  }
+  .badge.win { background: #1c7c3c; color: white; }
+  .badge.loss { background: #b3261e; color: white; }
+  .badge.live { background: #d97706; color: white; }
+  .badge.upcoming { background: #e5e5e5; color: #333; }
+</style>
+</head>
+<body>
+  <h1>BYU Football</h1>
+  <p class="subtitle">Spoiler-free results — wins and losses only</p>
+
+  {% for game in games %}
+  <div class="game">
+    <div class="info">
+      <span class="opponent">{{ "vs" if game.home_away == "home" else "@" }} {{ game.opponent }}</span>
+      <time class="meta" data-iso="{{ game.date }}">{{ game.date }}</time>
+    </div>
+    {% if game.status == "final" %}
+      <span class="badge {{ 'win' if game.result == 'W' else 'loss' }}">{{ game.result }}</span>
+    {% elif game.status == "live" %}
+      <span class="badge live">LIVE</span>
+    {% else %}
+      <span class="badge upcoming">Upcoming</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <script>
+    document.querySelectorAll('time[data-iso]').forEach((el) => {
+      const d = new Date(el.dataset.iso);
+      el.textContent = d.toLocaleString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      });
+    });
+  </script>
+</body>
+</html>
