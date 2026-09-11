@@ -2,11 +2,17 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from byu_schedule.espn import fetch_schedule
 
 app = FastAPI(title="BYU Schedule (Spoiler-Free)")
+app.mount(
+    "/static",
+    StaticFiles(directory=str(Path(__file__).parent / "static")),
+    name="static",
+)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 
