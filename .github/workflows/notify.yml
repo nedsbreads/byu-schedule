@@ -22,10 +22,10 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Check for finished games and notify
+      - name: Check for kickoff/final and notify
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-        run: uv run python scripts/notify_final.py
+        run: uv run python scripts/notify.py
 
       - name: Commit updated notification state
         run: |
