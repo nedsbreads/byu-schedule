@@ -85,7 +85,8 @@
     {% elif game.status == "live" %}
       <span class="badge live">
         LIVE
-        {%- if game.period %} · Q{{ game.period }}{% endif -%}
+        {%- if game.halftime %} · Halftime
+        {%- elif game.period %} · Q{{ game.period }}{% endif -%}
       </span>
     {% else %}
       <span class="badge upcoming">Upcoming</span>

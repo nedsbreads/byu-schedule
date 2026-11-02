@@ -43,6 +43,7 @@ class Game:
     # Capped at 4: showing an overtime period would reveal a tie at the end of
     # regulation. The game clock is deliberately not exposed.
     period: int | None = None
+    halftime: bool = False
     # Kickoff time not announced yet; `date` then holds ESPN's placeholder
     # (midnight Eastern on game day, e.g. 05:00Z).
     time_tbd: bool = False
@@ -86,6 +87,7 @@ def _live_fields(competition: dict) -> dict:
         "status": bucket,
         "result": result,
         "period": _spoiler_free_period(status) if bucket == "live" else None,
+        "halftime": bucket == "live" and status["type"].get("name") == "STATUS_HALFTIME",
     }
 
 
