@@ -32,5 +32,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add state/notified.json
-          git diff --cached --quiet || git commit -m "Update notified games state"
-          git diff --cached --quiet || git push
+          if ! git diff --cached --quiet; then
+            git commit -m "Update notified games state"
+            git push
+          fi
