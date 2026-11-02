@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -19,7 +20,15 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
     games = await fetch_schedule()
-    return templates.TemplateResponse(request, "index.html", {"games": games})
+    now = datetime.now(timezone.utc)
+    # Auto-reload while a game is live or about to kick off.
+    auto_refresh = any(g.needs_live_check(now) for g in games)
+    response = templates.TemplateResponse(
+        request, "index.html", {"games": games, "auto_refresh": auto_refresh}
+    )
+    # Never serve a stale copy from the browser cache.
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def main() -> None:

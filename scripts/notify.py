@@ -22,6 +22,7 @@ from pathlib import Path
 
 import httpx
 
+from byu_schedule import espn
 from byu_schedule.espn import Game, fetch_schedule
 
 STATE_PATH = Path(__file__).resolve().parent.parent / "state" / "notified.json"
@@ -103,6 +104,11 @@ async def main() -> None:
         while True:
             try:
                 games = await check_once(client, state)
+                # Log what the schedule vs live scoreboard feeds say, to
+                # measure how far the schedule feed lags during games.
+                stamp = datetime.now(timezone.utc).strftime("%H:%M:%SZ")
+                for line in espn.feed_comparison:
+                    print(f"{stamp} feeds: {line}", flush=True)
             except httpx.HTTPError as exc:
                 # Transient ESPN/ntfy failure: keep the watch alive.
                 print(f"check failed: {exc!r}")

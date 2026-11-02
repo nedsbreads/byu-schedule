@@ -4,6 +4,14 @@ Spoiler-free BYU football schedule. The core rule: never expose anything
 that hints at the score — no scores, no game clock, and no overtime period
 numbers (live games cap at Q4; see `_spoiler_free_period` in `espn.py`).
 
+## Data sources
+
+`espn.py` reads the season from ESPN's team schedule feed, then, for games
+live or near kickoff, overlays status/result from the single-game
+scoreboard feed (`scoreboard/{event_id}`), because the schedule feed lags
+during games. The notifier logs both feeds' status each poll ("feeds:"
+lines in the Actions log) to measure that lag.
+
 ## Multi-machine setup
 
 This folder is synced between two Windows machines (a laptop and a

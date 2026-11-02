@@ -94,6 +94,26 @@
   {% endfor %}
 
   <script>
+    // Keep the page current without pull-to-refresh:
+    // - during a live game (or near kickoff), reload every 30s while visible;
+    // - whenever the page comes back into view (e.g. reopening the home-screen
+    //   app, which can resume an old copy without reloading), reload if the
+    //   copy is more than a minute old.
+    const AUTO_REFRESH = {{ 'true' if auto_refresh else 'false' }};
+    const loadedAt = Date.now();
+    const reload = () => location.reload();
+    if (AUTO_REFRESH) {
+      setInterval(() => {
+        if (document.visibilityState === 'visible') reload();
+      }, 30000);
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && Date.now() - loadedAt > 60000) reload();
+    });
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) reload(); // restored from the back/forward cache
+    });
+
     document.querySelectorAll('time[data-iso]').forEach((el) => {
       const d = new Date(el.dataset.iso);
       if ('tbd' in el.dataset) {
