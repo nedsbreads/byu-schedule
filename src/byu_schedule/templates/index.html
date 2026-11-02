@@ -77,7 +77,8 @@
   <div class="game">
     <div class="info">
       <span class="opponent">{{ "vs" if game.home_away == "home" else "@" }} {{ game.opponent }}</span>
-      <time class="meta" data-iso="{{ game.date }}">{{ game.date }}</time>
+      <time class="meta" data-iso="{{ game.date }}"
+        {%- if game.time_tbd %} data-tbd{% endif %}>{{ game.date }}</time>
     </div>
     {% if game.status == "final" %}
       <span class="badge {{ 'win' if game.result == 'W' else 'loss' }}">{{ game.result }}</span>
@@ -95,6 +96,15 @@
   <script>
     document.querySelectorAll('time[data-iso]').forEach((el) => {
       const d = new Date(el.dataset.iso);
+      if ('tbd' in el.dataset) {
+        // Kickoff not set: ESPN's placeholder time (midnight Eastern) would
+        // show as the previous evening in Mountain time. Its UTC date is the
+        // actual game day, so show that date only.
+        el.textContent = d.toLocaleDateString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC',
+        }) + ' · Time TBD';
+        return;
+      }
       el.textContent = d.toLocaleString(undefined, {
         weekday: 'short', month: 'short', day: 'numeric',
         hour: 'numeric', minute: '2-digit',

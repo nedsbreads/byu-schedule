@@ -29,6 +29,9 @@ class Game:
     # Capped at 4: showing an overtime period would reveal a tie at the end of
     # regulation. The game clock is deliberately not exposed.
     period: int | None = None
+    # Kickoff time not announced yet; `date` then holds ESPN's placeholder
+    # (midnight Eastern on game day, e.g. 05:00Z).
+    time_tbd: bool = False
 
 
 def _spoiler_free_period(status: dict) -> int | None:
@@ -84,6 +87,7 @@ async def fetch_schedule() -> list[Game]:
                 status=bucket,
                 result=result,
                 period=_spoiler_free_period(status) if bucket == "live" else None,
+                time_tbd=event.get("timeValid") is False,
             )
         )
 
