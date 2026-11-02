@@ -1,7 +1,7 @@
 {
   "name": "BYU Schedule",
   "short_name": "BYU Schedule",
-  "description": "Spoiler-free BYU football schedule",
+  "description": "Spoiler-free BYU football and basketball schedules",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

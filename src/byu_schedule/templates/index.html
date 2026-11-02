@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="60">
-<title>BYU Schedule</title>
+<title>BYU {{ sport.name }}</title>
 
 <link rel="manifest" href="/static/manifest.json">
 <link rel="icon" href="/static/icon-192.png">
@@ -28,6 +27,30 @@
     .game { background: #1a1a1a; border-color: #2a2a2a; }
     .meta { color: #9a9a9a; }
     .badge.upcoming { background: #333; color: #ddd; }
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    margin: 0 0 18px;
+    border-radius: 10px;
+    background: #f0f0f0;
+  }
+  .tabs a {
+    flex: 1;
+    text-align: center;
+    padding: 8px 6px;
+    border-radius: 7px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+    text-decoration: none;
+  }
+  .tabs a[aria-current="page"] { background: #002E5D; color: white; }
+  @media (prefers-color-scheme: dark) {
+    .tabs { background: #1a1a1a; }
+    .tabs a { color: #bbb; }
+    .tabs a[aria-current="page"] { background: #1f4f8a; color: white; }
   }
   h1 {
     font-size: 1.3rem;
@@ -70,13 +93,18 @@
 </style>
 </head>
 <body>
-  <h1>BYU Football</h1>
+  <nav class="tabs">
+    {%- for s in sports %}
+    <a href="/{{ s.key }}"{% if s.key == sport.key %} aria-current="page"{% endif %}>{{ s.name }}</a>
+    {%- endfor %}
+  </nav>
+  <h1>BYU {{ sport.name }}</h1>
   <p class="subtitle">Spoiler-free results — wins and losses only</p>
 
   {% for game in games %}
   <div class="game">
     <div class="info">
-      <span class="opponent">{{ "vs" if game.home_away == "home" else "@" }} {{ game.opponent }}</span>
+      <span class="opponent">{{ game.versus }} {{ game.opponent }}</span>
       <time class="meta" data-iso="{{ game.date }}"
         {%- if game.time_tbd %} data-tbd{% endif %}>{{ game.date }}</time>
     </div>
@@ -85,8 +113,7 @@
     {% elif game.status == "live" %}
       <span class="badge live">
         LIVE
-        {%- if game.halftime %} · Halftime
-        {%- elif game.period %} · Q{{ game.period }}{% endif -%}
+        {%- if game.live_label %} · {{ game.live_label }}{% endif -%}
       </span>
     {% else %}
       <span class="badge upcoming">Upcoming</span>

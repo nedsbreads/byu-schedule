@@ -1,4 +1,4 @@
-name: Notify on BYU game final
+name: Notify on BYU game start and final
 
 # GitHub throttles this cron to roughly every 3-7h. That's fine: a run that
 # lands within 12h of kickoff stays running and polls every minute, then
@@ -36,6 +36,7 @@ jobs:
         id: watch
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_TOPIC_MBB: ${{ secrets.NTFY_TOPIC_MBB }}
         run: uv run python scripts/notify.py
 
       - name: Commit updated notification state

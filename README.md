@@ -1,7 +1,7 @@
 # byu-schedule
 
-Spoiler-free BYU football schedule: wins and losses only, no scores. Pulls
-live data from ESPN's public scoreboard API (no key required).
+Spoiler-free BYU schedules — football and men's basketball: wins and losses
+only, no scores. Pulls live data from ESPN's public API (no key required).
 
 ## Run locally
 
@@ -9,7 +9,8 @@ live data from ESPN's public scoreboard API (no key required).
 uv run uvicorn byu_schedule.main:app --reload
 ```
 
-Then open http://127.0.0.1:8000
+Then open http://127.0.0.1:8000 (`/football`, `/mens-basketball`; `/`
+shows whichever team you viewed last).
 
 ## Deploy (Render, free tier)
 
@@ -25,20 +26,25 @@ take a few seconds to wake back up on the next request.
 
 ## How it works
 
-- `src/byu_schedule/espn.py` fetches
-  `site.api.espn.com/.../teams/byu/schedule`, and for each game keeps only:
-  opponent, date, home/away, and whether the game is scheduled / live /
-  final. For final games it reads ESPN's `winner` boolean to show `W`/`L` —
-  it never reads or displays the score.
-- Results are cached in memory for 30 seconds to avoid hitting ESPN on every
-  page load.
-- Live games show only the quarter (no clock), capped at Q4 so overtime
-  doesn't reveal a tie.
+- Sports are defined in `SPORTS` in `src/byu_schedule/espn.py`. For each,
+  it fetches ESPN's `teams/byu/schedule` feed and keeps only: opponent,
+  date, home/away/neutral, and whether the game is scheduled / live / final.
+  For final games it reads ESPN's `winner` boolean to show `W`/`L` — it
+  never reads or displays the score.
+- For games live or about to start, status comes from ESPN's single-game
+  scoreboard feed instead, which updates faster during games.
+- Live games show only the period, never the clock, capped at the last
+  regulation period (football Q4, men's basketball 2nd Half) so overtime
+  doesn't reveal a tie. Halftime shows as "Halftime".
+- Results are cached in memory for 10 seconds. During a live game the page
+  reloads itself every 30 seconds.
 
 ## Notifications
 
-`scripts/notify.py` sends spoiler-free kickoff and W/L push notifications via
-[ntfy.sh](https://ntfy.sh) (topic set in the `NTFY_TOPIC` repo secret). It
-runs from GitHub Actions: when a game is live or within 12h of kickoff, the
-run stays up polling ESPN every minute and re-dispatches itself until the
-game is final, so notifications arrive within about a minute.
+`scripts/notify.py` sends spoiler-free start and W/L push notifications via
+[ntfy.sh](https://ntfy.sh), one topic per sport, set in repo secrets:
+`NTFY_TOPIC` (football) and `NTFY_TOPIC_MBB` (men's basketball). A sport
+whose secret isn't set is skipped. It runs from GitHub Actions: when a game
+is live or within 12h of its start, the run stays up polling ESPN every
+minute and re-dispatches itself until the game is final, so notifications
+arrive within about a minute.
