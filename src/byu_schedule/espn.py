@@ -26,8 +26,16 @@ class Game:
     home_away: str
     status: Status
     result: Literal["W", "L"] | None
+    # Capped at 4: showing an overtime period would reveal a tie at the end of
+    # regulation. The game clock is deliberately not exposed.
     period: int | None = None
-    display_clock: str | None = None
+
+
+def _spoiler_free_period(status: dict) -> int | None:
+    period = status.get("period")
+    if not period:
+        return None
+    return min(period, 4)
 
 
 def _status_bucket(status_type: dict) -> Status:
@@ -75,8 +83,7 @@ async def fetch_schedule() -> list[Game]:
                 home_away=byu["homeAway"],
                 status=bucket,
                 result=result,
-                period=status.get("period") if bucket == "live" else None,
-                display_clock=status.get("displayClock") if bucket == "live" else None,
+                period=_spoiler_free_period(status) if bucket == "live" else None,
             )
         )
 
