@@ -13,25 +13,41 @@ _BASE = "https://site.api.espn.com/apis/site/v2/sports"
 
 @dataclass(frozen=True)
 class Sport:
+    """One followed team. (Named Sport for history; it's really team+sport.)"""
+
     key: str  # URL slug and state key
-    name: str
+    title: str  # page heading, e.g. "BYU Football"
+    tab_label: str
     espn_path: str
+    team_slug: str  # ESPN team URL slug, e.g. "byu", "utah"
+    team_abbr: str  # ESPN abbreviation identifying our team in a game
+    team_name: str  # used in notifications: "BYU W", "Jazz beat ..."
     # Periods in regulation. Live display is capped here: showing an
     # overtime period would reveal a tie at the end of regulation.
     regulation_periods: int
     period_label: Callable[[int], str]
     start_word: str  # for notifications: "kickoff", "tip-off"
-    ntfy_env: str  # env var holding this sport's ntfy topic
+    ntfy_env: str  # env var holding this team's ntfy topic
 
-    @property
-    def schedule_url(self) -> str:
-        return f"{_BASE}/{self.espn_path}/teams/byu/schedule"
+    def schedule_url(self, season_type: int) -> str:
+        return (
+            f"{_BASE}/{self.espn_path}/teams/{self.team_slug}/schedule"
+            f"?seasontype={season_type}"
+        )
 
     def scoreboard_event_url(self, event_id: str) -> str:
-        # Single-game scoreboard feed (~15 KB). The team schedule feed's live
-        # status lags during games; this is the feed ESPN's own scoreboard
-        # uses, so live status/results come from here.
+        # Single-game scoreboard feed (~15-25 KB). The team schedule feed's
+        # live status lags during games; this is the feed ESPN's own
+        # scoreboard uses, so live status/results come from here.
         return f"{_BASE}/{self.espn_path}/scoreboard/{event_id}"
+
+
+def _quarters(p: int) -> str:
+    return f"Q{p}"
+
+
+def _halves(p: int) -> str:
+    return {1: "1st Half", 2: "2nd Half"}[p]
 
 
 SPORTS: dict[str, Sport] = {
@@ -39,24 +55,49 @@ SPORTS: dict[str, Sport] = {
     for s in [
         Sport(
             key="football",
-            name="Football",
+            title="BYU Football",
+            tab_label="BYU Football",
             espn_path="football/college-football",
+            team_slug="byu",
+            team_abbr="BYU",
+            team_name="BYU",
             regulation_periods=4,
-            period_label=lambda p: f"Q{p}",
+            period_label=_quarters,
             start_word="kickoff",
             ntfy_env="NTFY_TOPIC",
         ),
         Sport(
             key="mens-basketball",
-            name="Men's Basketball",
+            title="BYU Men's Basketball",
+            tab_label="BYU Basketball",
             espn_path="basketball/mens-college-basketball",
+            team_slug="byu",
+            team_abbr="BYU",
+            team_name="BYU",
             regulation_periods=2,  # men's college basketball plays halves
-            period_label=lambda p: {1: "1st Half", 2: "2nd Half"}[p],
+            period_label=_halves,
             start_word="tip-off",
             ntfy_env="NTFY_TOPIC_MBB",
         ),
+        Sport(
+            key="jazz",
+            title="Utah Jazz",
+            tab_label="Utah Jazz",
+            espn_path="basketball/nba",
+            team_slug="utah",
+            team_abbr="UTAH",
+            team_name="Jazz",
+            regulation_periods=4,
+            period_label=_quarters,
+            start_word="tip-off",
+            ntfy_env="NTFY_TOPIC_JAZZ",
+        ),
     ]
 }
+
+# ESPN's team schedule only returns one season type per request, and the
+# default excludes the postseason (bowl games, March Madness, NBA playoffs).
+_SEASON_TYPES = (2, 3)  # regular season, postseason
 DEFAULT_SPORT = SPORTS["football"]
 
 _CACHE_TTL_SECONDS = 10
@@ -127,12 +168,14 @@ def _live_fields(sport: Sport, competition: dict) -> dict:
     """Status, result, and live label from an ESPN competition object."""
     status = competition["status"]
     bucket = _status_bucket(status["type"])
-    byu = next(
-        c for c in competition["competitors"] if c["team"]["abbreviation"] == "BYU"
+    ours = next(
+        c
+        for c in competition["competitors"]
+        if c["team"]["abbreviation"] == sport.team_abbr
     )
     result: Literal["W", "L"] | None = None
     if bucket == "final":
-        result = "W" if byu.get("winner") else "L"
+        result = "W" if ours.get("winner") else "L"
     return {
         "status": bucket,
         "result": result,
@@ -157,33 +200,52 @@ async def _refresh_live(
     )
 
 
+async def _get_schedule(
+    client: httpx.AsyncClient, sport: Sport, season_type: int
+) -> list[dict]:
+    response = await client.get(sport.schedule_url(season_type))
+    response.raise_for_status()
+    return response.json().get("events", [])
+
+
 async def fetch_schedule(sport: Sport = DEFAULT_SPORT) -> list[Game]:
     cached = _cache.get(sport.key)
     if cached and time.monotonic() - cached[0] < _CACHE_TTL_SECONDS:
         return cached[1]
 
     async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.get(sport.schedule_url)
-        response.raise_for_status()
-        data = response.json()
+        regular, post = await asyncio.gather(
+            *(_get_schedule(client, sport, t) for t in _SEASON_TYPES),
+            return_exceptions=True,
+        )
+        if isinstance(regular, BaseException):
+            raise regular
+        events = list(regular)
+        if isinstance(post, BaseException):
+            # Postseason is a bonus; don't lose the whole page over it.
+            print(f"{sport.key} postseason schedule failed: {post!r}")
+        else:
+            seen = {e["id"] for e in events}
+            events += [e for e in post if e["id"] not in seen]
+        events.sort(key=lambda e: e["date"])
 
         games: list[Game] = []
         schedule_details: dict[str, str | None] = {}
-        for event in data.get("events", []):
+        for event in events:
             competition = event["competitions"][0]
-            byu = next(
-                c for c in competition["competitors"] if c["team"]["abbreviation"] == "BYU"
+            ours = next(
+                c
+                for c in competition["competitors"]
+                if c["team"]["abbreviation"] == sport.team_abbr
             )
-            opponent = next(
-                c for c in competition["competitors"] if c["team"]["abbreviation"] != "BYU"
-            )
+            opponent = next(c for c in competition["competitors"] if c is not ours)
             games.append(
                 Game(
                     id=event["id"],
                     week=event.get("week", {}).get("number"),
                     date=event["date"],
                     opponent=opponent["team"]["displayName"],
-                    home_away=byu["homeAway"],
+                    home_away=ours["homeAway"],
                     neutral=bool(competition.get("neutralSite")),
                     time_tbd=event.get("timeValid") is False,
                     **_live_fields(sport, competition),

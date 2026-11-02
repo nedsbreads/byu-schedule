@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BYU {{ sport.name }}</title>
+<title>{{ sport.title }}</title>
 
 <link rel="manifest" href="/static/manifest.json">
 <link rel="icon" href="/static/icon-192.png">
@@ -37,11 +37,15 @@
     background: #f0f0f0;
   }
   .tabs a {
-    flex: 1;
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    padding: 8px 6px;
+    padding: 8px 4px;
     border-radius: 7px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    line-height: 1.2;
     font-weight: 600;
     color: #555;
     text-decoration: none;
@@ -95,10 +99,10 @@
 <body>
   <nav class="tabs">
     {%- for s in sports %}
-    <a href="/{{ s.key }}"{% if s.key == sport.key %} aria-current="page"{% endif %}>{{ s.name }}</a>
+    <a href="/{{ s.key }}"{% if s.key == sport.key %} aria-current="page"{% endif %}>{{ s.tab_label }}</a>
     {%- endfor %}
   </nav>
-  <h1>BYU {{ sport.name }}</h1>
+  <h1>{{ sport.title }}</h1>
   <p class="subtitle">Spoiler-free results — wins and losses only</p>
 
   {% for game in games %}

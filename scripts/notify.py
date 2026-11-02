@@ -1,4 +1,4 @@
-"""Poll ESPN for BYU game status changes (start, final) and push
+"""Poll ESPN for followed teams' game status changes (start, final) and push
 spoiler-free notifications via ntfy.sh, one topic per sport (env var named
 by each Sport's `ntfy_env`; sports without a topic are skipped). Tracks
 already-notified games per sport in state/notified.json so each
@@ -120,8 +120,8 @@ async def check_sport(
                 client,
                 sport,
                 topic,
-                f"BYU {sport.start_word}",
-                f"BYU {game.versus} {game.opponent} has started",
+                f"{sport.team_name} {sport.start_word}",
+                f"{sport.team_name} {game.versus} {game.opponent} has started",
             )
             seen["started"].add(game.id)
             save_state(state)
@@ -129,7 +129,11 @@ async def check_sport(
         if game.status == "final" and game.id not in seen["final"]:
             verb = "beat" if game.result == "W" else "lost to"
             await notify(
-                client, sport, topic, f"BYU {game.result}", f"BYU {verb} {game.opponent}"
+                client,
+                sport,
+                topic,
+                f"{sport.team_name} {game.result}",
+                f"{sport.team_name} {verb} {game.opponent}",
             )
             seen["final"].add(game.id)
             save_state(state)

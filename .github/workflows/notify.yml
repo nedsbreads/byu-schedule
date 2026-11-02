@@ -37,6 +37,7 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           NTFY_TOPIC_MBB: ${{ secrets.NTFY_TOPIC_MBB }}
+          NTFY_TOPIC_JAZZ: ${{ secrets.NTFY_TOPIC_JAZZ }}
         run: uv run python scripts/notify.py
 
       - name: Commit updated notification state

@@ -1,14 +1,16 @@
 # byu-schedule
 
-Spoiler-free BYU schedules (football, men's basketball). The core rule:
-never expose anything that hints at the score — no scores, no game clock,
-and no overtime period numbers (live display caps at each sport's last
-regulation period; see `Sport.regulation_periods` and `_live_label` in
-`espn.py`). Men's college basketball plays halves, not quarters.
+Spoiler-free schedules (BYU football, BYU men's basketball, Utah Jazz). The
+core rule: never expose anything that hints at the score — no scores, no
+game clock, and no overtime period numbers (live display caps at each
+sport's last regulation period; see `Sport.regulation_periods` and
+`_live_label` in `espn.py`). Men's college basketball plays halves, not
+quarters.
 
 ## Sports
 
-Each sport is a `Sport` entry in `SPORTS` (`espn.py`): URL slug, ESPN path,
+Each followed team is a `Sport` entry in `SPORTS` (`espn.py`): URL slug,
+ESPN path and team slug/abbreviation (not all teams are BYU), titles,
 period labels, and the env var holding its ntfy topic. The site has a tab
 per sport at `/{key}`; `/` shows the last-viewed team (cookie). Notifier
 state in `state/notified.json` is keyed by sport; a sport new to the state
