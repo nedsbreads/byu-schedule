@@ -1,5 +1,8 @@
 name: Notify on BYU game final
 
+# GitHub throttles this cron to roughly every 3-7h. That's fine: a run that
+# lands within 12h of kickoff stays running and polls every minute, then
+# re-dispatches itself until the game is final (see scripts/notify.py).
 on:
   schedule:
     - cron: "*/15 * * * *"
@@ -7,10 +10,17 @@ on:
 
 permissions:
   contents: write
+  actions: write
+
+# Never run two watchers at once (would double-notify). Extra triggers queue.
+concurrency:
+  group: notify
+  cancel-in-progress: false
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
 
@@ -22,17 +32,26 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Check for kickoff/final and notify
+      - name: Watch for kickoff/final and notify
+        id: watch
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: uv run python scripts/notify.py
 
       - name: Commit updated notification state
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add state/notified.json
           if ! git diff --cached --quiet; then
             git commit -m "Update notified games state"
+            git pull --rebase
             git push
           fi
+
+      - name: Continue watching in a fresh run
+        if: steps.watch.outputs.rerun == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run notify.yml --ref "${{ github.ref_name }}"

@@ -32,3 +32,13 @@ take a few seconds to wake back up on the next request.
   it never reads or displays the score.
 - Results are cached in memory for 30 seconds to avoid hitting ESPN on every
   page load.
+- Live games show only the quarter (no clock), capped at Q4 so overtime
+  doesn't reveal a tie.
+
+## Notifications
+
+`scripts/notify.py` sends spoiler-free kickoff and W/L push notifications via
+[ntfy.sh](https://ntfy.sh) (topic set in the `NTFY_TOPIC` repo secret). It
+runs from GitHub Actions: when a game is live or within 12h of kickoff, the
+run stays up polling ESPN every minute and re-dispatches itself until the
+game is final, so notifications arrive within about a minute.

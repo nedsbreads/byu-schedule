@@ -24,4 +24,10 @@ a laptop and a desktop (`DESKTOP-8VC3R01`).
 
 `scripts/notify.py` runs from `.github/workflows/notify.yml` and commits
 `state/notified.json` back to the repo, so `git pull` before committing.
-GitHub throttles the `*/15` cron heavily; in practice runs land hours apart.
+
+GitHub throttles the `*/15` cron to every ~3-7h, so timing doesn't rely on
+it: a run that finds a game live or within 12h of kickoff stays running,
+polling every 60s, and re-dispatches itself before the 6h job limit until
+the game is final. On game weekends that means near-continuous runs, which
+is why the repo is public (unlimited Actions minutes; it was private with a
+2,000 min/month cap). A `concurrency` group prevents overlapping watchers.
