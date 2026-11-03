@@ -22,7 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
+      # Check out the branch's latest commit, not the commit that triggered
+      # this run: a run queued behind a watcher (concurrency group) must see
+      # the state that watcher just pushed, or it re-sends its notifications.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
